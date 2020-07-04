@@ -1,0 +1,92 @@
+---
+title: "take home assignment 1"
+author: "Averie Lim"
+date: "7/4/2020"
+output: html_document
+---
+
+```{r tidy table}
+
+library(rvest)
+library(tidyverse)
+url <- "https://www.nu3.de/blogs/nutrition/food-carbon-footprint-index-2018"
+url_html <- read_html(url)
+whole_table <- url_html %>% 
+  html_nodes('table') %>% # select table
+  html_table(fill = TRUE) %>% # parse it to date frame
+  .[[1]] # pull out the data frame
+table_content <- whole_table %>%
+  select(-X1) %>% # remove redundant column
+  filter(!dplyr::row_number() %in% 1:3) # remove redundant rows
+raw_headers <- url_html %>%
+  html_nodes(".thead-icon") %>% # select element 
+  html_attr('title') # pull out column names
+tidy_bottom_header <- raw_headers[28:length(raw_headers)]
+raw_middle_header <- raw_headers[17:27]
+tidy_headers <- c( # fix headers
+  rep(raw_middle_header[1:7], each = 2),
+  "animal_total",
+  rep(raw_middle_header[8:length(raw_middle_header)], each = 2),
+  "non_animal_total",
+  "country_total")
+combined_colnames <- paste(tidy_headers, tidy_bottom_header, sep = ';') # create column names
+colnames(table_content) <- c("Country", combined_colnames) # add column names
+table_content_tbl <- as_tibble(table_content)
+table_content_tbl
+combined_colnames <- paste(tidy_headers, tidy_bottom_header, sep = ';')
+colnames(table_content) <- c("Country", combined_colnames) # do this to display the column names because previously all column names were "animal products"
+glimpse(table_content[, 1:10])
+view(table_content) # view the table
+long_table <- table_content %>% # select the table
+  pivot_longer(cols = -Country, names_to = "Category", values_to = "Values") # pivot the non-variable columns into rows
+view(long_table) # view the table
+long_table2 <- long_table %>% # select the table
+  separate(Category, into=c("Food Category","Metric"), sep =";") # split the column "Category" into two
+view(long_table2) # view the table
+long_table3 <- long_table2 %>% # select the table
+  pivot_wider(names_from = "Metric", values_from = "Values") # pivot the rows into columns
+view(long_table3) # view the table
+glimpse(long_table3)
+renamed_table <- long_table3 %>%
+  select(Country, `Food Category`, `Supplied for Consumption (kg/person/year)`, `Kg CO2/person/year`) %>%
+  rename(country = Country, food_category = `Food Category`, consumption = `Supplied for Consumption (kg/person/year)`, kg_co2 = `Kg CO2/person/year`) # change the column names (part 3 of assignment)
+glimpse(renamed_table)
+renamed_table_w_fct <- renamed_table %>% # to convert variables to factors (part 4 of assignment)
+  mutate(country = as.factor(country),
+         food_category = as.factor(food_category),
+         consumption = as.double(consumption), # convert character vectors to double
+         kg_co2 = as.double(kg_co2))
+glimpse(renamed_table_w_fct)
+```
+
+```{r scatter plot by country}
+
+view(renamed_table_w_fct)
+table_filtered_country <- renamed_table_w_fct %>%
+  filter(food_category != "animal_total" & food_category != "non_animal_total" & food_category != "country_total") # filter out the summation values
+ggplot(data = table_filtered_country, aes(x = consumption, y = kg_co2, color = country)) +
+  geom_point()
+```
+
+```{r smoothed line}
+ggplot(data = table_filtered_country) +
+  geom_smooth(aes(x = consumption, y = kg_co2)) +
+  labs(title = "Food consumption per country vs CO2 emission per country", x = "Food consumption (kg/person/year)", y = "CO2 emission (kg CO2/person/year")
+```
+
+```{r faceted graph by type of food}
+ggplot(data = table_filtered_country) +
+  geom_point(aes(x = consumption, y = kg_co2)) +
+  facet_wrap(~food_category,
+             nrow = 2) + 
+  labs(x = "Food consumption (kg/person/year)", y = "CO2 emission (kg CO2/person/year")
+```
+
+```{r scatter plot sum by country}
+table_filtered_country %>%
+  distinct(country, .keep_all = TRUE) %>%
+  group_by(country) %>%
+  summarize(sum_consumption = sum(consumption), sum_kg_co2 = sum(kg_co2)) %>%
+ggplot(aes(x = sum_consumption, y = sum_kg_co2, color = country)) +
+  geom_point()
+```
