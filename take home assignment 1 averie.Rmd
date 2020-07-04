@@ -78,7 +78,7 @@ ggplot(data = table_filtered_country) +
 ggplot(data = table_filtered_country) +
   geom_point(aes(x = consumption, y = kg_co2)) +
   facet_wrap(~food_category,
-             nrow = 2) + 
+             nrow = 3) + 
   labs(x = "Food consumption (kg/person/year)", y = "CO2 emission (kg CO2/person/year")
 ```
 
@@ -89,4 +89,40 @@ table_filtered_country %>%
   summarize(sum_consumption = sum(consumption), sum_kg_co2 = sum(kg_co2)) %>%
 ggplot(aes(x = sum_consumption, y = sum_kg_co2, color = country)) +
   geom_point()
+```
+
+```{r faceted graphs by country}
+library(dplyr)
+library(stringr)
+tbc_country_group <- table_filtered_country %>%
+  mutate(country_group = case_when(str_detect(country, "^A") ~ "A-L",
+                                   str_detect(country, "^B") ~ "A-L",
+                                   str_detect(country, "^C") ~ "A-L",
+                                   str_detect(country, "^D") ~ "A-L",
+                                   str_detect(country, "^E") ~ "A-L",
+                                   str_detect(country, "^F") ~ "A-L",
+                                   str_detect(country, "^G") ~ "A-L",
+                                   str_detect(country, "^H") ~ "A-L",
+                                   str_detect(country, "^I") ~ "A-L",
+                                   str_detect(country, "^J") ~ "A-L",
+                                   str_detect(country, "^K") ~ "A-L",
+                                   str_detect(country, "^L") ~ "A-L",
+                                   str_detect(country, "^M") ~ "M-Z",
+                                   str_detect(country, "^N") ~ "M-Z",
+                                   str_detect(country, "^O") ~ "M-Z",
+                                   str_detect(country, "^P") ~ "M-Z",
+                                   str_detect(country, "^Q") ~ "M-Z",
+                                   str_detect(country, "^R") ~ "M-Z",
+                                   str_detect(country, "^S") ~ "M-Z",
+                                   str_detect(country, "^T") ~ "M-Z",
+                                   str_detect(country, "^U") ~ "M-Z",
+                                   str_detect(country, "^V") ~ "M-Z",
+                                   str_detect(country, "^W") ~ "M-Z",
+                                   str_detect(country, "^X") ~ "M-Z",
+                                   str_detect(country, "^Y") ~ "M-Z",
+                                   str_detect(country, "^Z") ~ "M-Z"))
+ggplot(data = tbc_country_group) +
+  geom_point(aes(x = consumption, y = kg_co2)) +
+  facet_wrap(~country_group,
+             nrow = 2)
 ```
